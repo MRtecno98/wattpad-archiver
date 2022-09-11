@@ -1,9 +1,11 @@
-import requests, time, sys, bs4
+import requests, time, sys, bs4, os
 from ebooklib import epub
 
-USERNAME = ""
-TOKEN = ""
-AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
+USERNAME = os.environ.get("WATTPAD_USERNAME", "")
+TOKEN = os.environ.get("TOKEN", "")
+AGENT = os.environ.get("AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/105.0.0.0 Safari/537.36")
+
+OUTPUT = os.environ.get("OUTPUT", ".")
 
 ENDPOINT = "https://www.wattpad.com/api/v3/users/{username:s}/library"
 FIELDS = "stories(id,title,createDate,modifyDate,voteCount,readCount,commentCount,description,url,firstPublishedPart," \
@@ -72,6 +74,8 @@ print()
 print("Processing stories into EPUB format")
 all = time.time()
 
+os.makedirs(OUTPUT, exist_ok=True)
+
 cover_template = None
 with open("templates/cover.xhtml") as f:
 	cover_template = f.read()
@@ -89,7 +93,7 @@ for story in result["stories"]:
 	i += 1
 	
 	loc = time.time()
-	filename = story["title"].replace(" ", "_") + ".epub"
+	filename = os.path.join(OUTPUT, story["title"].replace(" ", "_") + ".epub")
 
 	print("Processing " + story["title"] + " (" + str(story["id"]) + ")")
 
