@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<title>{title:s}</title>
+</head>
+
+<body>
+	<center>
+		<h1>{title:s}</h1>
+		<h3 style="margin-bottom:25px">by: {author:s} ({username:s})</h3>
+
+		<p style="margin-bottom:15px">
+			{description:s}
+			<br />
+			<br />
+		</p>
+
+		<img style="background-color : black; margin-left:auto; margin-right:auto; display:block;" 
+			 height="320" width="205" src="cover.jpg" /> <!-- 320px = 80% of 400px -->
+
+		<br />
+		<br />
+
+		<p style="margin-top:0px;margin-bottom:0px">Reads: {reads:d} | Votes: {votes:d} | Comments: {comments:d}</p>
+		<br>
+		<p style="margin-top:10px;margin-bottom:5px;">Published for the first time on Wattpad on {first_publish:s}</p>
+		<p style="margin-top:0px;">Last updated at time of download on {last_update:s}</p>
+
+		<!-- No idea on what the copyright number means in the story metadata
+		<p>Copyright © 2010-2014 John Schember</p>
+		<p>Licensed under a <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.en_US">Creative
+				Commons Attribution-ShareAlike 4.0 International License</a>.<br /></p>
+		-->
+	</center>
+</body>
+</html>

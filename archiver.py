@@ -69,15 +69,25 @@ result = process_request(ENDPOINT.format(username=USERNAME), fields=FIELDS, limi
 print("Downloaded " + str(len(result["stories"])) + " story datasets, took " + str(round(time.time() - t, 2)) + "s")
 print()
 
-print("Processing stories into EPUB format\n")
+print("Processing stories into EPUB format")
 all = time.time()
+
+cover_template = None
+with open("templates/cover.xhtml") as f:
+	cover_template = f.read()
+
+title_template = None
+with open("templates/title.xhtml") as f:
+	title_template = f.read()
+
+print("Loaded templates\n")
 
 i = 0
 for story in result["stories"]:
 	if i >= 3:
 		break
 	i += 1
-	 
+	
 	loc = time.time()
 	filename = story["title"].replace(" ", "_") + ".epub"
 
@@ -111,7 +121,24 @@ for story in result["stories"]:
 	book.add_metadata('DC', 'creator', story["user"]["name"])
 	book.add_metadata('DC', 'creator', story["user"]["username"])
 
-	toc = []
+	cover = epub.EpubHtml(title="Cover", file_name="cover_page.xhtml", lang=book.language, 
+		content=cover_template.format(title=story["title"]).encode())
+	title = epub.EpubHtml(title="Title Page", file_name="title.xhtml", lang=book.language,
+		content=title_template.format(
+			title=story["title"], 
+			author=story["user"]["name"], 
+			username=story["user"]["username"],
+			description=story["description"],
+			reads=story["readCount"],
+			votes=story["voteCount"],
+			comments=story["commentCount"],
+			first_publish=story["createDate"],
+			last_update=story["modifyDate"]).encode())
+
+	book.add_item(cover)
+	book.add_item(title)
+
+	toc = [cover, title]
 	for part in story["parts"]:
 		print("\tDownloading part \"" + part["title"] + "\"")
 
