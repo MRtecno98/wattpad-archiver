@@ -1,4 +1,4 @@
-import requests, time, sys, bs4, os
+import requests, time, sys, bs4, os, json
 from ebooklib import epub
 
 USERNAME = os.environ.get("WATTPAD_USERNAME", "")
@@ -51,7 +51,13 @@ def process_request(url, stream=None, **kwargs):
 	if request.status_code == 200:
 		return request.json()
 	else:
-		raise Exception("Request failed with code " + str(request.status_code) + ": " + request.json()["message"])
+		message = None
+		try:
+			message = request.json()["message"]
+		except:
+			pass
+
+		raise Exception("Request failed with code " + str(request.status_code) + (": " + message if message else ""))
 
 def build_chapter_header(part):
 	CHAPTER_HEADER = """
