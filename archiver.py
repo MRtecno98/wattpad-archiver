@@ -8,6 +8,8 @@ AGENT = os.environ.get("AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrom
 MULTITHREAD = os.environ.get("MULTITHREAD", "false").lower() == "true"
 OUTPUT = os.environ.get("OUTPUT", ".")
 
+RATELIMIT = int(os.environ.get("RATELIMIT", "5"))
+
 ENDPOINT = "https://www.wattpad.com/api/v3/users/{username:s}/library"
 FIELDS = "stories(id,title,createDate,modifyDate,voteCount,readCount,commentCount,description,url,firstPublishedPart," \
 	+ "cover,language,isAdExempt,user(name,username,avatar,location,highlight_colour,backgroundUrl,numLists," \
@@ -27,9 +29,19 @@ SYMBOLS = set(r"""`~!@#$%^&*()_-+={[}}|\:;"'<,>.?/""")
 if MULTITHREAD:
 	import threading
 
+# Max nanosecond delay between requests
+req_delay = 1e+9 / RATELIMIT
+last_request = time.time_ns()
+
 errors = 0
 
 def get_request(url, stream=None, **kwargs):
+	global last_request, req_delay
+
+	if time.time_ns() - last_request < req_delay:
+		time.sleep((req_delay - (time.time_ns() - last_request)) / 1e+9)
+
+	last_request = time.time_ns()
 	return requests.get(url, params=kwargs, stream=stream,
 			headers={'User-Agent': AGENT}, cookies={"token": TOKEN})
 
