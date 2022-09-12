@@ -9,6 +9,7 @@ MULTITHREAD = os.environ.get("MULTITHREAD", "false").lower() == "true"
 OUTPUT = os.environ.get("OUTPUT", ".")
 
 RATELIMIT = int(os.environ.get("RATELIMIT", "5"))
+MAX_STORIES = int(os.environ.get("MAX_STORIES", "-1"))
 
 ENDPOINT = "https://www.wattpad.com/api/v3/users/{username:s}/library"
 FIELDS = "stories(id,title,createDate,modifyDate,voteCount,readCount,commentCount,description,url,firstPublishedPart," \
@@ -120,7 +121,8 @@ threads = []
 
 i = 0
 for story in result["stories"]:
-	if i >= 3:
+	if MAX_STORIES >= 0 and i >= MAX_STORIES:
+		print(f"Processed {i} stories, stopping because limit is set at {MAX_STORIES}\n")
 		break
 	i += 1
 	
@@ -161,16 +163,10 @@ for story in result["stories"]:
 		book.add_metadata('DC', 'creator', story["user"]["username"])
 
 		cover = epub.EpubHtml(title="Cover", file_name="cover_page.xhtml", lang=book.language, 
-	cover = epub.EpubHtml(title="Cover", file_name="cover_page.xhtml", lang=book.language, 
-		cover = epub.EpubHtml(title="Cover", file_name="cover_page.xhtml", lang=book.language, 
 			content=cover_template.format(title=story["title"]).encode())
 		title = epub.EpubHtml(title="Title Page", file_name="title.xhtml", lang=book.language,
 			content=title_template.format(
 				title=story["title"], 
-			title=story["title"], 
-				title=story["title"], 
-				author=story["user"]["name"], 
-			author=story["user"]["name"], 
 				author=story["user"]["name"], 
 				username=story["user"]["username"],
 				description=story["description"],
@@ -189,8 +185,6 @@ for story in result["stories"]:
 
 			chap = epub.EpubHtml(
 					uid=str(part["id"]),
-					title=part["title"], 
-				title=part["title"], 
 					title=part["title"], 
 					file_name=str(part["id"]) + ".xhtml")
 
