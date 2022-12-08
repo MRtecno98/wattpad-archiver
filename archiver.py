@@ -1,4 +1,4 @@
-import requests, time, sys, bs4, os, json
+import requests, time, sys, bs4, os, json, datetime
 from ebooklib import epub
 
 USERNAME = os.environ.get("WATTPAD_USERNAME", "")
@@ -87,7 +87,10 @@ print("Endpoint :\t", ENDPOINT.format(username=USERNAME))
 print()
 
 print("Output\t\t:\t\"" + OUTPUT + "\"")
-print("Multithreading\t:\t" + ("ON" if MULTITHREAD else "OFF"))
+print()
+
+scrape_time = time.time()
+print("Beginning scrape on " + datetime.datetime.fromtimestamp(scrape_time).strftime("%Y-%m-%d %H:%M:%S"))
 print()
 
 print("Getting library count")
@@ -161,6 +164,13 @@ for story in result["stories"]:
 		book.add_metadata('DC', 'language', book.language)
 		book.add_metadata('DC', 'creator', story["user"]["name"])
 		book.add_metadata('DC', 'creator', story["user"]["username"])
+
+		book.add_metadata('OPF', 'reads', str(story["readCount"]), {'property':'dcterms:extent'})
+		book.add_metadata('OPF', 'votes', str(story["voteCount"]), {'property':'dcterms:extent'})
+		book.add_metadata('OPF', 'comments', str(story["commentCount"]), {'property':'dcterms:extent'})
+		book.add_metadata('OPF', 'created', story["createDate"], {'property':'dcterms:extent'})
+		book.add_metadata('OPF', 'updated', story["modifyDate"], {'property':'dcterms:extent'})
+		book.add_metadata('OPF', 'scraped', str(scrape_time), {'property':'dcterms:extent'})
 
 		cover = epub.EpubHtml(title="Cover", file_name="cover_page.xhtml", lang=book.language, 
 			content=cover_template.format(title=story["title"]).encode())
