@@ -284,7 +284,7 @@ for story in result["stories"]:
 		print()
 
 	if MULTITHREAD:
-		t = threading.Thread(target=process_story, args=(story,))
+		t = threading.Thread(target=process_story, daemon=True, args=(story,))
 		threads.append(t)
 		t.start()
 	else:
@@ -293,8 +293,13 @@ for story in result["stories"]:
 if MULTITHREAD:
 	print("Waiting for all threads to finish")
 
-	for t in threads:
-		t.join()
+	try:
+		for t in threads:
+			while t.is_alive():
+				t.join(1)
+	except KeyboardInterrupt:
+		print("Interrupted, terminating all threads")
+		sys.exit(1)
 	print("\n\nAll jobs done\n")
 
 print("Processed " + str(len(result["stories"])) + " stories with " + str(errors) + " errors, took " + str(round(time.time() - all, 2)) + "s")
