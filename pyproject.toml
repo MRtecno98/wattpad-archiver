@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "wattpad-archiver"
 version = "0.1.0"
-description = "Downloads your wattpad bookshelf to disk"
+description = "Downloads your wattpad library to disk"
 authors = ["MRtecno98 <mr.tecno98@gmail.com>"]
 license = "MIT"
 

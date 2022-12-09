@@ -1,0 +1,9 @@
+*.epub
+output*
+requirements.txt
+log.txt
+fields.txt
+.vscode/
+.venv/
+.gitignore
+.dockerignore
