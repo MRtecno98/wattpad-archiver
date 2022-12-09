@@ -1,3 +1,4 @@
 *.epub
 requirements.txt
 log.txt
+output*
