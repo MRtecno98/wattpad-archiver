@@ -30,24 +30,62 @@ SYMBOLS = set(r"""`~!@#$%^&*()_-+={[}}|\:;"'<,>.?/""")
 if MULTITHREAD:
 	import threading
 
+	class TimeEvent(threading.Event):
+		def __init__(self, *args, **kwargs):
+			super().__init__(*args, **kwargs)
+			self.clear()
+
+		def set(self, *args, **kwargs):
+			self.__time = time.time()
+			super().set(*args, **kwargs)
+		
+		def clear(self, *args, **kwargs):
+			self.__time = float("inf")
+			super().clear(*args, **kwargs)
+
+		def set_time(self):
+			return self.__time
+
+	errors = 0
+	err_event = TimeEvent()
+	reqlock = threading.Lock()
+
 # Max nanosecond delay between requests
 req_delay = 1e+9 / RATELIMIT
 last_request = time.time_ns()
-reqlock = threading.Lock()
-
-errors = 0
 
 def get_request(url, stream=None, **kwargs):
-	global last_request, req_delay
-	
-	with reqlock:
-		if time.time_ns() - last_request < req_delay:
-			time.sleep((req_delay - (time.time_ns() - last_request)) / 1e+9)
+	def __req(wait=True):
+		global last_request, req_delay
 		
-		last_request = time.time_ns()
+		if MULTITHREAD:
+			with reqlock:
+				if time.time_ns() - last_request < req_delay:
+					time.sleep((req_delay - (time.time_ns() - last_request)) / 1e+9)
+				
+				last_request = time.time_ns()
 
-	return requests.get(url, params=kwargs, stream=stream,
-			headers={'User-Agent': AGENT}, cookies={"token": TOKEN})
+		req = requests.get(url, params=kwargs, stream=stream,
+				headers={'User-Agent': AGENT}, cookies={"token": TOKEN})
+
+		if req.status_code == 429:
+			if MULTITHREAD and err_event.is_set() and wait:
+				err_event.wait()
+			else:
+				if MULTITHREAD:
+					print(">>> Rate limit exceeded, halting everyone until reset")
+					err_event.set()
+				elif wait:
+					print(">>> Rate limit exceeded, retrying every 2 seconds")
+
+				time.sleep(2)
+			return __req(wait=False)
+		elif MULTITHREAD and time.time() > err_event.set_time():
+			print(">>> Rate limit reset, resuming")
+			err_event.clear()
+
+		return req
+	return __req()
 
 def process_request(url, stream=None, **kwargs):
 	request = get_request(url,  stream=stream, **kwargs)
