@@ -128,6 +128,8 @@ print("Endpoint :\t", ENDPOINT.format(username=USERNAME))
 print()
 
 print("Output\t\t:\t\"" + OUTPUT + "\"")
+print(f"Limit\t\t:\t{MAX_STORIES} stories" if MAX_STORIES > 0 else "Download everything")
+print("Multithreading\t:\t" + (f"ON - Max rate: {RATELIMIT}" if MULTITHREAD else "OFF"))
 print()
 
 scrape_time = time.time()
