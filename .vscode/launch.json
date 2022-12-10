@@ -10,6 +10,7 @@
 			"request": "launch",
 			"program": "archiver.py",
 			"console": "integratedTerminal",
+			"envFile": "${workspaceFolder}/debug.env",
 			"justMyCode": false
 		}
 	]
