@@ -37,14 +37,15 @@ jobs:
           push: true
           tags: mrtecno/wattpad-archiver:latest
 
-      - name: Checkout README
-        uses: Bhacaz/checkout-files@v2
-        with:
-          files: README.md
+      # Private API currently not working
+      # - name: Checkout README
+      #   uses: Bhacaz/checkout-files@v2
+      #   with:
+      #     files: README.md
 
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ github.repository }}
+      # - name: Docker Hub Description
+      #   uses: peter-evans/dockerhub-description@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      #     repository: ${{ github.repository }}
