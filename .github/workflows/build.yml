@@ -37,6 +37,11 @@ jobs:
           push: true
           tags: mrtecno/wattpad-archiver:latest
 
+      - name: Checkout README
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: README.md
+
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3
         with:
