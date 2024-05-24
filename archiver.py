@@ -27,6 +27,8 @@ LANGUAGES = {
 
 SYMBOLS = set(r"""`~!@#$%^&*()_-+={[}}|\:;"'<,>.?/""")
 
+errors = 0
+
 if MULTITHREAD:
 	import threading
 
@@ -46,7 +48,6 @@ if MULTITHREAD:
 		def set_time(self):
 			return self.__time
 
-	errors = 0
 	err_event = TimeEvent()
 	reqlock = threading.Lock()
 
