@@ -222,7 +222,7 @@ for story in result["stories"]:
 
 		toc = [cover, title]
 		for part in story["parts"]:
-			print(f"\tDownloading part \"{story["title"]}\" / \"{part["title"]}\"")
+			print(f"\tDownloading part \"{story['title']}\" / \"{part['title']}\"")
 
 			chap = epub.EpubHtml(
 					uid=str(part["id"]),
