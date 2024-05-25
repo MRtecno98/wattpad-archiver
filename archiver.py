@@ -6,7 +6,7 @@ TOKEN = os.environ.get("TOKEN", "")
 AGENT = os.environ.get("AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/105.0.0.0 Safari/537.36")
 
 MULTITHREAD = os.environ.get("MULTITHREAD", "false").lower() == "true"
-OUTPUT = os.environ.get("OUTPUT", ".")
+OUTPUT = os.environ.get("OUTPUT", "./output")
 
 RATELIMIT = int(os.environ.get("RATELIMIT", "20"))
 MAX_STORIES = int(os.environ.get("MAX_STORIES", "-1"))
