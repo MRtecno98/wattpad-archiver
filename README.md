@@ -27,7 +27,7 @@ $ python archiver.py
 If you want you can also use the Docker image available on Docker Hub
 
 ```
-docker run -it --rm -v ./output:/output -e WATTPAD_USERNAME=<user> -e TOKEN=00000000 wattpad-archiver:latest
+docker run -it --rm -v ./output:/output -e WATTPAD_USERNAME=<user> -e TOKEN=00000000 mrtecno/wattpad-archiver:latest
 ```
 
 More information on environment arguments below
