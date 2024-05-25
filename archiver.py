@@ -1,11 +1,13 @@
-import requests, time, sys, bs4, os, json, datetime
+import requests, time, sys, bs4, os, json, datetime, random, threading
 from ebooklib import epub
 
 USERNAME = os.environ.get("WATTPAD_USERNAME", "")
 TOKEN = os.environ.get("TOKEN", "")
 AGENT = os.environ.get("AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/105.0.0.0 Safari/537.36")
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 MULTITHREAD = os.environ.get("MULTITHREAD", "false").lower() == "true"
+MAX_RETRIES = int(os.environ.get("MAX_RETRIES", "30"))
 OUTPUT = os.environ.get("OUTPUT", "./output")
 
 RATELIMIT = int(os.environ.get("RATELIMIT", "20"))
@@ -28,35 +30,14 @@ LANGUAGES = {
 SYMBOLS = set(r"""`~!@#$%^&*()_-+={[}}|\:;"'<,>.?/""")
 
 errors = 0
-
-if MULTITHREAD:
-	import threading
-
-	class TimeEvent(threading.Event):
-		def __init__(self, *args, **kwargs):
-			super().__init__(*args, **kwargs)
-			self.clear()
-
-		def set(self, *args, **kwargs):
-			self.__time = time.time()
-			super().set(*args, **kwargs)
-		
-		def clear(self, *args, **kwargs):
-			self.__time = float("inf")
-			super().clear(*args, **kwargs)
-
-		def set_time(self):
-			return self.__time
-
-	err_event = TimeEvent()
-	reqlock = threading.Lock()
+reqlock = threading.RLock()
 
 # Max nanosecond delay between requests
 req_delay = 1e+9 / RATELIMIT
 last_request = time.time_ns()
 
 def get_request(url, stream=None, **kwargs):
-	def __req(wait=True):
+	def __req(tries=0, id=random.randint(0, 99999)):
 		global last_request, req_delay
 		
 		if MULTITHREAD:
@@ -66,24 +47,26 @@ def get_request(url, stream=None, **kwargs):
 				
 				last_request = time.time_ns()
 
+		if DEBUG:
+			print("({}) >>> GET {}".format(id, url))
 		req = requests.get(url, params=kwargs, stream=stream,
 				headers={'User-Agent': AGENT}, cookies={"token": TOKEN})
 
-		if req.status_code == 429:
-			if MULTITHREAD and err_event.is_set() and wait:
-				err_event.wait()
-			else:
-				if MULTITHREAD:
-					print(">>> Rate limit exceeded, halting everyone until reset")
-					err_event.set()
-				elif wait:
-					print(">>> Rate limit exceeded, retrying every 2 seconds")
+		if tries >= MAX_RETRIES and req.status_code != 200:
+			print(f"({id}) >>> Received error code {req.status_code} after {tries} tries, probably got tempbanned")
+			print(f"({id}) >>> Aborting, try again later or with a different IP address and token")
+			os._exit(1)
+		elif req.status_code == 429:
+			with reqlock:
+				if tries == 0:
+					print(f"({id}) >>> Received error code {req.status_code}, rate limit exceeded")
+				delay = min(2 + (tries / 2), 10.0)
+				print(f"({id}) >>> [Attempt #{tries}] Rate limit error detected, retrying in {delay}s")
 
-				time.sleep(2)
-			return __req(wait=False)
-		elif MULTITHREAD and time.time() > err_event.set_time():
-			print(">>> Rate limit reset, resuming")
-			err_event.clear()
+				time.sleep(delay)
+				return __req(tries=tries + 1, id=id)
+		elif tries > 1:
+			print(f"({id}) >>> Resuming requests after {tries} attempts")
 
 		return req
 	return __req()
@@ -129,7 +112,7 @@ print("Endpoint :\t", ENDPOINT.format(username=USERNAME))
 print()
 
 print("Output\t\t:\t\"" + OUTPUT + "\"")
-print(f"Limit\t\t:\t{MAX_STORIES} stories" if MAX_STORIES > 0 else "Download everything")
+print("Limit\t\t:\t" + (f"{MAX_STORIES} stories" if MAX_STORIES > 0 else "Download everything"))
 print("Multithreading\t:\t" + (f"ON - Max rate: {RATELIMIT}" if MULTITHREAD else "OFF"))
 print()
 
@@ -165,6 +148,10 @@ with open("templates/title.xhtml") as f:
 print("Loaded templates\n")
 
 threads = []
+
+# Shuffle stories to avoid rate limiting by
+# varying requests over multiple executions
+random.shuffle(result["stories"]) 
 
 i = 0
 for story in result["stories"]:
@@ -235,7 +222,7 @@ for story in result["stories"]:
 
 		toc = [cover, title]
 		for part in story["parts"]:
-			print("\tDownloading part \"" + part["title"] + "\"")
+			print(f"\tDownloading part \"{story["title"]}\" / \"{part["title"]}\"")
 
 			chap = epub.EpubHtml(
 					uid=str(part["id"]),

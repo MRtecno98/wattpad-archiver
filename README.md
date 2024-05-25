@@ -42,8 +42,10 @@ The script takes arguments from environment variables, below is a list of which 
 | `AGENT` 				| HTTP User Agent the script should use when making requests, default: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/105.0.0.0 Safari/537.36` |
 | `MULTITHREAD` | If set to `true` starts a separate thread for every story to download instead of working sequentially, it is recommended to fine-tune the `RATELIMIT` option when enabling multithreading to avoid being tempbanned, default: `false` |
 | `RATELIMIT` | Sets the max number of requests made in one second, default is `20` which seems a pretty conservative estimate to not trigger any protection |
+| `MAX_RETRIES` | Sets the maximum number of retries for a request before terminating the whole process, default: `30` |
 | `OUTPUT` | Sets the output directory, which will be created if non existent, default: `./output` |
 | `MAX_STORIES` | Sets the maximum number of stories to download, default: `-1` (no limit) |
+| `DEBUG` | If set to `true` enables debug logging of all HTTP requests, default: `false` |
 
 ## Getting a token
 Wattpad's api is private, as such the api token is not available to the public. However, it is possible to get it by using the browser's developer tools by reading the stored cookies when logged in.
