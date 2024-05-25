@@ -1,4 +1,4 @@
-FROM python:3.10-alpine AS base
+FROM python:3.12-alpine AS base
 
 ENV PYTHONFAULTHANDLER=1 \
 	PYTHONUNBUFFERED=1 \
@@ -7,7 +7,7 @@ ENV PYTHONFAULTHANDLER=1 \
 	PIP_DISABLE_PIP_VERSION_CHECK=on \
 	PIP_DEFAULT_TIMEOUT=100
 
-RUN apk update && apk add gcc libc-dev
+RUN apk update && apk add gcc libc-dev libffi-dev
 
 FROM base AS poetry
 
