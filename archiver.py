@@ -1,4 +1,5 @@
-import requests, time, sys, bs4, os, json, datetime, random, threading
+import requests, time, sys, bs4, os, json, datetime, random, threading, urllib
+from mimetypes import guess_extension
 from ebooklib import epub
 
 USERNAME = os.environ.get("WATTPAD_USERNAME", "")
@@ -85,28 +86,46 @@ def process_request(url, stream=None, **kwargs):
 
 		raise Exception("Request failed with code " + str(request.status_code) + (": " + message if message else ""))
 
-def build_chapter_header(part):
-	CHAPTER_HEADER = """
-		<center>
-			<h1 style="margin-bottom:13px;">{title:s}</h1>
-			{dedication_html:s}
-			<p style="margin-top:0px;margin-bottom:10px">Reads: {reads:d} | Votes: {votes:d} | Comments: {comments:d}</p>
-			<br>
-		</center>
-	"""
+def build_chapter(part, content, work_title="Wattpad", photo_url=None, chapter_tags={}):
+	META_TAG = '<meta name="{tag:s}" content="{value:s}" />'
+
+	meta_tags = list()
+	for tag, value in chapter_tags.items():
+		meta_tags.append(META_TAG.format(tag=tag, value=value))
+
+	meta_tags = "\n".join(meta_tags)
+
+	if part["photoUrl"] != "":
+		photo_url = photo_url or part["photoUrl"]
+
+	PHOTO_HTML = '<br /><img src="{photo_url:s}" style="max-width:100%;height:auto;">'
+	photo_html = PHOTO_HTML.format(photo_url=photo_url) if photo_url else ""
 
 	DEDICATION_HTML = '<p style="margin-top:0px;margin-bottom:13px;">Dedicated to: <a href="{url:s}">{name:s}</a></p>'
 	dedication = DEDICATION_HTML.format(url=part["dedication"]["url"], name=part["dedication"]["name"]) \
 		if len(part["dedication"]) > 0 else ""
 
-	return CHAPTER_HEADER.format(title=part["title"], dedication_html=dedication,
-			reads=part["readCount"], votes=part["voteCount"], comments=part["commentCount"])
+	return chapter_template.format(title=part["title"], url=part["url"], dedication_html=dedication, meta_tags=meta_tags,
+			reads=part["readCount"], votes=part["voteCount"], comments=part["commentCount"],
+			photo_html=photo_html, content=content, work_title=work_title)
+
+def dateformat(iso):
+	return datetime.datetime.fromisoformat(iso).strftime("%d %b %Y %H:%M:%S")
+
+def timestampformat(stamp):
+	return datetime.datetime.fromtimestamp(stamp).strftime("%d %b %Y %H:%M:%S")
+
+token_file = False
+if os.path.isfile(TOKEN):
+	with open(TOKEN) as f:
+		TOKEN = f.read().strip()
+		token_file = True
 
 print("Initializing Wattpad Library Scraper")
 print()
 
 print("Username :\t", USERNAME)
-print("Token\t :\t", TOKEN[:9] + "*" * 10 + TOKEN[-9:])
+print("Token\t :\t", TOKEN[:9] + "*" * 10 + TOKEN[-9:], "(from file)" if token_file else "")
 print("Agent\t :\t", AGENT)
 print("Endpoint :\t", ENDPOINT.format(username=USERNAME))
 print()
@@ -125,7 +144,7 @@ count = process_request(ENDPOINT.format(username=USERNAME), fields="total")["tot
 print("Found " + str(count) + " stories in library")
 print()
 
-print(f"Downloading library")
+print("Downloading library")
 t = time.time()
 result = process_request(ENDPOINT.format(username=USERNAME), fields=FIELDS, limit=count, offset=0)
 
@@ -144,6 +163,10 @@ with open("templates/cover.xhtml") as f:
 title_template = None
 with open("templates/title.xhtml") as f:
 	title_template = f.read()
+
+chapter_template = None
+with open("templates/chapter.xhtml") as f:
+	chapter_template = f.read()
 
 print("Loaded templates\n")
 
@@ -180,28 +203,28 @@ for story in result["stories"]:
 				+ "defaulting to \"en\"", file=sys.stderr)
 			book.set_language("en")
 
-		book.add_author(f"{story['user']['name']} ({story['user']['username']})")
-		book.set_cover("cover.jpg", get_request(story["cover"]).content)
+		book.add_author(story['user']['username'])
+		book.set_cover("cover.jpg", get_request(story["cover"]).content, create_page=False)
 
 		# Buttload of metadata ('cause we've got it so why not)
 		book.add_metadata('DC', 'description', story["description"])
 		book.add_metadata('DC', 'publisher', "Wattpad")
-		book.add_metadata('DC', 'date', story["createDate"])
+		book.add_metadata('DC', 'date', dateformat(story["createDate"]))
 		book.add_metadata('DC', 'subject', ", ".join(story["tags"]))
 		book.add_metadata('DC', 'type', "Text")
 		book.add_metadata('DC', 'format', "application/epub+zip")
 		book.add_metadata('DC', 'identifier', "wp" + story["id"])
 		book.add_metadata('DC', 'source', story["url"])
 		book.add_metadata('DC', 'language', book.language)
-		book.add_metadata('DC', 'creator', story["user"]["name"])
 		book.add_metadata('DC', 'creator', story["user"]["username"])
 
-		book.add_metadata('OPF', 'reads', str(story["readCount"]), {'property':'dcterms:extent'})
-		book.add_metadata('OPF', 'votes', str(story["voteCount"]), {'property':'dcterms:extent'})
-		book.add_metadata('OPF', 'comments', str(story["commentCount"]), {'property':'dcterms:extent'})
-		book.add_metadata('OPF', 'created', story["createDate"], {'property':'dcterms:extent'})
-		book.add_metadata('OPF', 'updated', story["modifyDate"], {'property':'dcterms:extent'})
-		book.add_metadata('OPF', 'scraped', str(scrape_time), {'property':'dcterms:extent'})
+		book.add_metadata('OPF', 'author', story["user"]["name"], {'property':'wattpad:author'})
+		book.add_metadata('OPF', 'reads', str(story["readCount"]), {'property':'wattpad:reads'})
+		book.add_metadata('OPF', 'votes', str(story["voteCount"]), {'property':'wattpad:votes'})
+		book.add_metadata('OPF', 'comments', str(story["commentCount"]), {'property':'wattpad:comments'})
+		book.add_metadata('OPF', 'created', dateformat(story["createDate"]), {'property':'wattpad:created'})
+		book.add_metadata('OPF', 'updated', dateformat(story["modifyDate"]), {'property':'wattpad:updated'})
+		book.add_metadata('OPF', 'scraped', timestampformat(scrape_time), {'property':'wattpad:scraped'})
 
 		cover = epub.EpubHtml(title="Cover", file_name="cover_page.xhtml", lang=book.language, 
 			content=cover_template.format(title=story["title"]).encode())
@@ -214,46 +237,72 @@ for story in result["stories"]:
 				reads=story["readCount"],
 				votes=story["voteCount"],
 				comments=story["commentCount"],
-				first_publish=story["createDate"],
-				last_update=story["modifyDate"]).encode())
+				first_publish=dateformat(story["createDate"]),
+				last_update=dateformat(story["modifyDate"])).encode())
 
-		book.add_item(cover)
+		# book.add_item(cover) # Not needed, already set as cover
 		book.add_item(title)
 
-		toc = [cover, title]
+		toc = [title]
 		for part in story["parts"]:
 			print(f"\tDownloading part \"{story['title']}\" / \"{part['title']}\"")
 
 			chap = epub.EpubHtml(
 					uid=str(part["id"]),
-					title=part["title"], 
+					title=part["title"],
 					file_name=str(part["id"]) + ".xhtml")
 
-			orig = get_request(part["text_url"]["text"]).content
+			orig = get_request(part["text_url"]["text"]).text
+
+			chapter_tags = {
+				"wattpad:author": story["user"]["name"],
+				"wattpad:reads": str(part["readCount"]),
+				"wattpad:votes": str(part["voteCount"]),
+				"wattpad:comments": str(part["commentCount"]),
+				"wattpad:updated": dateformat(part["modifyDate"]),
+				"wattpad:id": str(part["id"]),
+				"wattpad:source_url": part["url"],
+				"wattpad:text_url": part["text_url"]["text"],
+			}
 
 			try:
-				err = json.loads(orig.decode())
+				err = json.loads(orig)
 				print(f"Error while downloading part \"{part['title']}\": {err['message']}", file=sys.stderr)
+				chapter_tags["wattpad:error"] = err["message"]
+				if "code" in err:
+					chapter_tags["wattpad:error_code"] = str(err["code"])
 				errors += 1
 			except:
 				pass
 
 			# Building header
-			orig = build_chapter_header(part).encode() + orig
+			orig = build_chapter(part, orig, work_title=story["title"], chapter_tags=chapter_tags)
 
-			if b"<img" in orig:
+			if "<img" in orig:
+				WATTPAD_IMAGE_URLS = ["img.wattpad.com", "d.wattpad.com"]
+
 				soup = bs4.BeautifulSoup(orig, "html.parser")
 				for img in soup.find_all("img"):
 					url = img["src"]
-					if "img.wattpad.com" in url:
+					if any(wattpad_url in url for wattpad_url in WATTPAD_IMAGE_URLS):
 						print(f"\t\tRelinking image \"{ (url[:51] + '...') if len(url) > 54 else url }\"")
 
-						imgname = f"images/{part['id']}/{url.split('/')[-1]}"
+						imgpath = urllib.parse.urlsplit(url).path
+						imgname = f"images/{part['id']}{imgpath}"
+
+						request = get_request(url)
+
+						if len(os.path.basename(imgname).split(".")) == 1:
+							cont_type = request.headers.get("Content-Type", None)
+							if cont_type is not None and (guessed := guess_extension(cont_type)):
+								imgname += guessed
+							else:
+								imgname += ".jpg"
 						
 						book.add_item(epub.EpubItem(
 								file_name=imgname,
 								media_type="image/jpeg",
-								content=get_request(url).content))
+								content=request.content))
 						img["src"] = imgname
 				chap.set_content(soup.prettify())
 			else:
@@ -278,7 +327,11 @@ for story in result["stories"]:
 		threads.append(t)
 		t.start()
 	else:
-		process_story(story)
+		try:
+			process_story(story)
+		except KeyboardInterrupt:
+			print(f"Interrupted, stopping after processing {i} stories")
+			sys.exit(1)
 
 if MULTITHREAD:
 	print("Waiting for all threads to finish")
