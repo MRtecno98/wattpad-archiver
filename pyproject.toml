@@ -1,18 +1,30 @@
-[tool.poetry]
+[project]
 name = "wattpad-archiver"
 version = "0.1.0"
 description = "Downloads your wattpad library to disk"
-authors = ["MRtecno98 <mr.tecno98@gmail.com>"]
+authors = [{ name = "MRtecno98", email = "mr.tecno98@gmail.com" }]
+requires-python = ">=3.10,<4"
 license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "requests>=2.28.1,<3",
+    "EbookLib>=0.18,<=0.20",
+    "beautifulsoup4>=4.11.1,<5",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-requests = "^2.28.1"
-EbookLib = "^0.18"
-beautifulsoup4 = "^4.11.1"
+[dependency-groups]
+dev = []
 
-[tool.poetry.dev-dependencies]
+[tool.uv]
+package = false
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"
