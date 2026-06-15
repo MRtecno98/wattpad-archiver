@@ -8,3 +8,7 @@ fields.txt
 .gitignore
 .dockerignore
 debug*
+.uv
+__pycache__
+*.pyc
+.git

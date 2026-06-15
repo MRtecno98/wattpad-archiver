@@ -6,16 +6,6 @@ on:
       - 'master'
 
 jobs:
-  poetry:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.11.1
-      - uses: abatilo/actions-poetry@v2
-      - run: poetry install
-
   docker:
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +27,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: mrtecno/wattpad-archiver:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Private API currently not working
       # - name: Checkout README

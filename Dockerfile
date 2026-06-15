@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
+
 FROM python:3.12-alpine AS base
 
 ENV PYTHONFAULTHANDLER=1 \
@@ -9,15 +12,24 @@ ENV PYTHONFAULTHANDLER=1 \
 
 RUN apk update && apk add gcc libc-dev libffi-dev
 
-FROM base AS poetry
+FROM base AS uv
 
-RUN pip install poetry
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /code
-COPY poetry.lock pyproject.toml /code/
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
-RUN poetry config virtualenvs.create false && \
-	poetry export --without-hashes -f requirements.txt -o requirements.txt
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+
+COPY templates ./templates
+COPY archiver.py .
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 FROM base AS final
 
@@ -30,13 +42,12 @@ ENV OUTPUT=/output \
 	MAX_STORIES=-1 \
 	DEBUG=false
 
-WORKDIR /code
+WORKDIR /app
 
-COPY --from=poetry /code/requirements.txt .
-RUN pip install -r requirements.txt
+COPY --from=uv /app/.venv /app/.venv
+COPY --from=uv /app /app
 
-COPY templates ./templates
-COPY archiver.py .
+ENV PATH="/app/.venv/bin:$PATH"
 
 VOLUME ["/output"]
 

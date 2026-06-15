@@ -10,17 +10,16 @@ $ python archiver.py
 
 Note that you will have to provide at least an username and a token (see below)
 
-### Installing with poetry
-If you want isolation or don't want to install all the dependencies by hand, you can use poetry to create a virtualenv with everything installed
+### Installing with uv
+If you want isolation or don't want to install all the dependencies by hand, you can use uv to create a virtualenv with everything installed
 
 ```
-$ poetry install
-$ poetry shell
+$ uv sync
 
 $ USERNAME=<user>
 $ TOKEN=00000000
 
-$ python archiver.py
+$ uv run python archiver.py
 ```
 
 ### Running with docker
