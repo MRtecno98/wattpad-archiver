@@ -3,3 +3,5 @@ requirements.txt
 log.txt
 output*
 debug*
+*.7z
+*.zip
