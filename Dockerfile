@@ -10,8 +10,6 @@ ENV PYTHONFAULTHANDLER=1 \
 	PIP_DISABLE_PIP_VERSION_CHECK=on \
 	PIP_DEFAULT_TIMEOUT=100
 
-RUN apk update && apk add gcc libc-dev libffi-dev
-
 FROM base AS uv
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
